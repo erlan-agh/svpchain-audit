@@ -231,3 +231,7 @@ mainnet launches so the hunt can be repeated against production contracts
   likely fall in the **$0–$1,000** (or honorable-mention) range — not Critical.
 - No Critical/High was withheld; the code is genuinely well-hardened.
 - Recommend the dev team apply the two fixes above as defensive hardening.
+
+---
+
+**By Nalreee**

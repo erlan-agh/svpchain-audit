@@ -1,7 +1,7 @@
 # SVPBridge Mainnet — Source Audit (Authorized, Read-Only)
 
 **Date:** 2026-07-22
-**Auditor:** Hermes (on behalf of @erlan_agh, authorized hunter)
+**Auditor:** Nalreee (authorized hunter, superagent-bugbounty v7.1)
 **Target:** `SVPBridge` @ `0x7F69Eb47b61781d61Ff6E399A71f866b2D19314F` (SVP Chain mainnet, chainId 2517)
 **Source:** Verified on explorer.svpchain.com (Blockscout), compiler v0.8.24, optimized 200 runs
 **Scope:** Full source (1004 lines SVPBridge.sol + Signature.sol + OZ deps)
