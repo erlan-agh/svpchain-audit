@@ -17,7 +17,7 @@ are well-hardened. Lower-severity issues + unauditable-scope gaps are documented
 |---|---------|----------|---------|
 | 1 | CORS `*` on `/api/health` (no sensitive data) | Info / Low | Web |
 | 2 | SVPBridge signature-loop order-dependent false-negative (liveness/DoS) | Low / Med | Contract |
-| 3 | **Undocumented Telegram-themed admin functions in Lendora prod contract** (access-controlled) | Medium | Contract |
+| 3 | **Undocumented Telegram-themed admin function in Lendora prod contract** (`watch_tg_invmru_ae5c248`, access-controlled) | Medium | Contract |
 | 4 | Lendora / NovaSwap contracts UNVERIFIED on explorer → unauditable $50K scope | Medium (program gap) | Contract |
 | 5 | Staging `pre-*` subdomains serve production-identical apps | Low | Infra |
 | 6 | MCP agent auth gate — legit session obtained, strict tenant isolation holds (no IDOR) | Info (pass) | Web3/API |

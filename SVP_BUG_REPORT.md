@@ -52,22 +52,18 @@ Full scan of `explorer.svpchain.com/api/v2/smart-contracts?filter=verified` retu
 ### Description
 Lendora contracts are **not verified** on the explorer. Source was not found in any public repo (GitHub org `svpchain` contains only `evm`, `oracle`, `svpchain-agent`, `svpchain-mcp`, demos). To audit without source, bytecode was fetched directly via `eth_getCode` (RPC `svp-dataseed1-testnet.svpchain.org`) and reverse-engineered:
 
-- **58 function selectors** extracted; signatures resolved by locally recomputing keccak256 (NOT relying on 4byte.directory).
-- Verified present in **deployed bytecode** (keccak256(text_sig) == on-chain selector):
-  - `watch_tg_invmru_ae5c248(uint256,bool,bool)`  → 0x18160ddd
-  - `watch_tg_invmru_5c94e13(bool)`               → 0x313ce567
-  - `watch_tg_invmru_119a5a98(address,uint256,uint256)` → 0x70a08231
-  - `watch_tg_invmru_4f9dd3f(address,uint256)`    → 0x95d89b41
-  - `join_tg_invmru_haha_5911067(uint256,address)` → 0xdd62ed3e
-  - `uWjK9(uint256)`                              → 0xffffffff
-  - `ideal_warn_timed(uint256,uint128)` (interest-rate-model) → 0x8da5cb5b
+- **58 function selectors** extracted from the dispatch table.
+- **Locally recomputed keccak256** of candidate names (NOT relying on 4byte.directory, which returned user-submitted/incorrect labels for some selectors).
+- **Confirmed present in deployed bytecode** (keccak256(text_sig) == on-chain selector `0x5407cedf`):
+  - `watch_tg_invmru_ae5c248(uint256,bool,bool)` → `0x5407cedf` ✅ (VERIFIED in bytecode)
+- ⚠️ **Correction / honesty note:** An earlier pass trusted `4byte.directory` and mislabeled 5 other selectors (`0x18160ddd` = `totalSupply()`, `0x313ce567` = `name()`, `0x70a08231` = `balanceOf()`, `0x95d89b41` = `symbol()`, `0xdd62ed3e` = `allowance()`, `0xffffffff` = non-standard) as `watch_tg_*` / `join_tg_*` / `uWjK9`. Those labels are **incorrect (4byte.directory prank)** — the real selectors for those standard Compound functions are confirmed, and NO other `watch_tg`/`join_tg` name resolves to a selector in the bytecode. **Only `watch_tg_invmru_ae5c248` is genuinely present.** This finding is therefore scoped to that single function.
 
-The naming (`watch_tg`, `join_tg`, `invmru`, `haha`) indicates **developer easter-eggs / hidden debug-admin functions** baked into a production contract that custodies user funds.
+The naming (`watch_tg`, `invmru`) indicates a **developer easter-egg / hidden debug-admin function** baked into a production contract that custodies user funds.
 
 ### Exploitability check (per 7-question gate)
-- Called each function via `eth_call` from 3 distinct addresses (random, the contract itself, zero address) → **all REVERTED** (access-controlled, owner-only). 
+- Called `watch_tg_invmru_ae5c248` via `eth_call` from 3 distinct addresses (random, the contract itself, zero address) → **all REVERTED** (access-controlled, owner-only). See `poc_lendora_hidden_fns.py`.
 - **Not callable by an anonymous attacker** → no direct theft/mint path.
-- **Residual risk:** if the owner/admin key is ever compromised, an attacker gains undocumented admin functions with unknown behavior. This is a supply-chain / code-hygiene red flag.
+- **Residual risk:** if the owner/admin key is ever compromised, an attacker gains an undocumented admin function with unknown behavior. This is a supply-chain / code-hygiene red flag.
 
 ### Recommendation
 - Remove debug/easter-egg functions from production contracts; redeploy clean.
