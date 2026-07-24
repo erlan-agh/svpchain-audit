@@ -1,0 +1,52 @@
+# SVP Dev Report Draft — Oracle Single-Owner (Critical on mainnet)
+
+Sent via: Discord SVP / email | By: Nalreee | Date: 2026-07-24
+Wallet (if bounty): 0x38d77eB4099cebBC676038172005520017a53095
+
+=== PART 1/3 — Finding ===
+Hi SVP team, authorized security review of your oracle stack on testnet 2517. I found a
+centralization risk that becomes Critical on mainnet if these oracles feed the trading core.
+Posting for responsible disclosure + fix before mainnet launch.
+
+Finding: Oracle price feeds controlled by a SINGLE EOA (no multisig/timelock)
+Affected (testnet):
+- ReporterRegistry 0xfb6C039aE2c14A80af6EAf89dacAdC603e5342E0
+- ManualPriceOracle 0x0713d943cbcC01fbd582f833fdD7037535A0d002
+- OffChainAggregator 0x070c3783C296806465261963E403EDB0933C7110
+
+Root cause: every admin fn is onlyOwner where owner = team EOA (not multisig):
+- ReporterRegistry.addReporter/removeReporter/setReporterActive -> onlyOwner
+- ManualPriceOracle.setPrice(asset,price) -> onlyOwner
+- OffChainAggregator.transmit -> only reporters from ReporterRegistry (same owner)
+On-chain proof:
+- ReporterRegistry owner() = 0x5d41dd7fb5dbea6e07321eca896700cc6f02b856
+- ManualPriceOracle owner() = 0xe78797d30ca777f7ef8dafc5e5b1a03fd53874e0
+
+=== PART 2/3 — Impact + Verify ===
+Impact (Critical on mainnet): if these oracles feed matching/settlement/margin/custody,
+compromise of that one EOA = arbitrary price manipulation -> bad fills, liquidation theft,
+minting against inflated collateral = direct fund theft. Even without compromise, single-point
+admin contradicts "decentralized AI trading L1" and is a program-disqualifying risk.
+On testnet 2517 no trading core deployed -> architectural only (no live funds). Risk realizes at mainnet 2518.
+
+Reproduce (read-only):
+RPC=https://svp-dataseed1-testnet.svpchain.org
+curl -s -X POST $RPC -H 'Content-Type: application/json' \
+ -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0xfb6C039aE2c14A80af6EAf89dacAdC603e5342E0","data":"0x8da5cb5b"},"latest"],"id":1}'
+# -> 0x...5d41dd7fb5dbea6e07321eca896700cc6f02b856 (single EOA)
+# ManualPriceOracle 0x0713... -> 0x...e78797d30ca777f7ef8dafc5e5b1a03fd53874e0
+Source: ReporterRegistry.sol L18; ManualPriceOracle.sol L15.
+
+=== PART 3/3 — PoC + Fix ===
+PoC (no exploit needed): compromised owner can
+  reporterRegistry.addReporter(ATTACKER);
+  manualPriceOracle.setPrice(SVP, 0);
+-> corrupts every dependent price feed.
+
+Recommendation:
+1. Move oracle admin to multisig (3-of-5) or timelock with on-chain notice.
+2. Prefer aggregated, attested feeds over single manual price.
+3. Monitor owner changes + anomalous price deltas.
+
+Action: re-check on mainnet 2518 at launch. If still single-EOA AND oracles feed trading ->
+this is Critical per your bounty tiers. Happy to verify fix / re-test post-patch.
